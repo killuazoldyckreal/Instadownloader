@@ -3,11 +3,7 @@ import os
 import re
 import subprocess
 import warnings
-try:
-    import instaloader
-except ModuleNotFoundError:
-    subprocess.call(['pip', 'install', 'instaloader'])
-    import instaloader
+import instaloader
 
 while True:
     #Enter the post/reel link to download
