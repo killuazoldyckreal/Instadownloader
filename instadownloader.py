@@ -4,7 +4,8 @@ import re
 import subprocess
 import warnings
 import instaloader
-
+from dotenv import load_dotenv
+load_dotenv()
 while True:
     #Enter the post/reel link to download
     url=input("Enter the post/reel link: ")
@@ -14,18 +15,13 @@ while True:
         shortcode = re.search(regexp, url).group(2)
 
         #Loading Instaloader
-        L = instaloader.Instaloader(filename_pattern=shortcode)
-        path="./sessionid"
-        USER="Your Instagram Username"
-
-
-        #Loading saved session
-        if os.path.isfile(path):
-            L.load_session_from_file(USER, filename="sessionid")
-
-        #Login if session not found
+        session_id = os.getenv("SESSION_ID")
+        if session_id:
+            L = instaloader.Instaloader(filename_pattern=shortcode, session=session_id)
         else:
-            PASSWORD="Your Instagram Password"
+            USER= os.getenv("USER")
+            PASSWORD= os.getenv("PASS")
+            L = instaloader.Instaloader(filename_pattern=shortcode)
             try:
                 #Login directly from the given username and password
                 L.login(USER, PASSWORD)
@@ -39,7 +35,10 @@ while True:
                 L.interactive_login(USER)
             
             #Saving the session so we don't need to login again
-            L.save_session_to_file(filename="sessionid")   
+            session_id = L.context.get("session")
+            
+            with open(".env", "w") as f:
+                f.write("SESSION_ID=" + session_id)   
 
 
             #Downloading post/reel
