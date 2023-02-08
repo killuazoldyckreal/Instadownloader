@@ -4,6 +4,7 @@ import re
 import subprocess
 import warnings
 import instaloader
+import traceback
 from dotenv import load_dotenv
 load_dotenv()
 while True:
@@ -17,31 +18,47 @@ while True:
         #Loading Instaloader
         session_id = os.getenv("SESSION_ID")
         if session_id:
-            L = instaloader.Instaloader(filename_pattern=shortcode, session=session_id)
+            L = instaloader.Instaloader(filename_pattern=shortcode)
+            L.context.session = session_id
         else:
             USER= os.getenv("USER")
             PASSWORD= os.getenv("PASS")
             L = instaloader.Instaloader(filename_pattern=shortcode)
             try:
+                print("\n+--------------------------------------------------------------------------+")
+                print("| Your session is not saved!! Trying to Login using USERNAME and PASSWORD! |")
+                print("+--------------------------------------------------------------------------+\n")
                 #Login directly from the given username and password
                 L.login(USER, PASSWORD)
             except instaloader.exceptions.ConnectionException:
                 #This method will be used if upper login method doesn't work
-                print("\n+---------------------------------------------+")
-                print("| Your session is not saved!! Login required! |")
-                print("+---------------------------------------------+\n")
+                print("\n+---------------------------------------------------------------+")
+                print("| Login failed due to malformed data! Trying to Login manually! |")
+                print("+---------------------------------------------------------------+\n")
                 USER=input("Enter your instagram username: ")
                 warnings.simplefilter('ignore')
                 L.interactive_login(USER)
-            
-            #Saving the session so we don't need to login again
-            session_id = L.context.get("session")
-            
-            with open(".env", "w") as f:
-                f.write("SESSION_ID=" + session_id)   
+            except instaloader.exceptions.BadCredentialsException:
+                print("\n+--------------------------------------------------------------------+")
+                print("| Login failed due to inavlid Credentials! Trying to Login manually! |")
+                print("+--------------------------------------------------------------------+\n")
+                USER=input("Enter your instagram username: ")
+                warnings.simplefilter('ignore')
+                L.interactive_login(USER)
+            except:
+                traceback.print_exc()
+                break
+            cookie_jar = L.context._session.cookies
+            for cookie in cookie_jar:
+                if cookie.name == "sessionid":
+                    session_id = cookie.value
+                    #Saving session so that program doesn't require login next time
+                    with open(".env", "a") as f:
+                        f.seek(0, 2)
+                        f.write(f"\nSESSION_ID = '{session_id}'")   
+                    f.close()
 
-
-            #Downloading post/reel
+        #Downloading post/reel
         try:
             post = instaloader.Post.from_shortcode(L.context, shortcode)
             L.download_post(post, target='videos')
@@ -49,7 +66,7 @@ while True:
             os.remove(f"./videos/{shortcode}.json.xz")
             os.remove(f"./videos/{shortcode}.txt")
         except instaloader.exceptions.QueryReturnedBadRequestException:
-            print("bad")
+            print("Incorrect URL or File is Private")
     elif url.lower()=="s":
         break
     else:
