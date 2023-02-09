@@ -15,14 +15,16 @@ while True:
         regexp = '^(?:.*\/(p|tv|reel)\/)([\d\w\-_]+)'
         shortcode = re.search(regexp, url).group(2)
 
-        #Loading Instaloader
+        #Getting credentials from .env file
         session_id = os.getenv("SESSION_ID")
+        USER= os.getenv("USER")
+        PASSWORD= os.getenv("PASS")
+        
+        #Loading Instaloader
         if session_id:
             L = instaloader.Instaloader(filename_pattern=shortcode)
             L.context.session = session_id
         else:
-            USER= os.getenv("USER")
-            PASSWORD= os.getenv("PASS")
             L = instaloader.Instaloader(filename_pattern=shortcode)
             try:
                 print("\n+--------------------------------------------------------------------------+")
